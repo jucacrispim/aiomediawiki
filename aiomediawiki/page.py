@@ -19,7 +19,6 @@
 from decimal import Decimal
 import re
 
-from bs4 import BeautifulSoup
 from .exceptions import MissingPage, AmbiguousPage
 
 
