@@ -49,7 +49,7 @@ class MediaWikiPage:
     you can load a page's contens.
     """
 
-    DEFAULT_LOAD_TYPE = 'full'
+    DEFAULT_LOAD_TYPE = 'basic'
     """Indicates if we should load the full information by default."""
 
     def __init__(self, mediawiki, title):
@@ -121,40 +121,16 @@ class MediaWikiPage:
 
     async def _basic_load(self):
         """First load to a page. Checks if it exists and
-        if it is not a disambiguaiton page.
+        if it is not a disambiguaiton page. No html parsing
+        is done here unless the page is an ambiguous one. In this case
+        we download and parse the disambiguation page html in order to
+        raise an exception with more information.
         """
-        params = {
-            'prop': 'info|pageprops',
-            'inprop': 'url',
-            'ppprop': 'disambiguation',
-            'redirects': '',
-            'titles': self.title
-        }
-
-        r = await self.mediawiki.request2api(params)
-        page = r['query']['pages'][0]
-        if page.get('missing'):
-            raise MissingPage('The page {} does not exist'.format(self.title))
-
-        if page.get('pageprops'):
-            # an ambiguous one...
-            raise AmbiguousPage
-
-        self._redirected = bool(r['query'].get('redirects'))
-        self._pageid = page['pageid']
-        # change here in case of redirect
-        self._title = page['title']
-        self._url = page['fullurl']
-
-    async def _full_api_load(self):
-        """After the basic load is done you can use this method
-        to load more attributes from the api. No html parsing is
-        done here.
-        """
-
+        p = 'extracts|redirects|links|coordinates|categories|extlinks'
+        p += '|info|pageprops'
         params = {
             'titles': self.title,
-            'prop': 'extracts|redirects|links|coordinates|categories|extlinks',
+            'prop': p,
             # summary
             'explaintext': '',
             'exintro': '',  # full first section for the summary!
@@ -171,11 +147,25 @@ class MediaWikiPage:
             'clshow': '!hidden',
             # references
             'ellimit': 'max',
+            'inprop': 'url',
+            'ppprop': 'disambiguation',
+            'redirects': '',
         }
 
         r = await self.mediawiki.request2api(params)
         page = r['query']['pages'][0]
+        if page.get('missing'):
+            raise MissingPage('The page {} does not exist'.format(self.title))
 
+        if page.get('pageprops'):
+            # an ambiguous one...
+            raise AmbiguousPage
+
+        self._redirected = bool(r['query'].get('redirects'))
+        self._pageid = page['pageid']
+        # change here in case of redirect
+        self._title = page['title']
+        self._url = page['fullurl']
         self._summary = page['extract']
         self._links = [l['title'] for l in page.get('links', [])]
         self._redirects = [red['title'] for red in page.get('redirects', [])]
@@ -187,7 +177,6 @@ class MediaWikiPage:
     async def load(self, load_type=DEFAULT_LOAD_TYPE):
         ltypes = {
             'basic': (self._basic_load,),
-            'full': (self._basic_load, self._full_api_load)
         }
 
         pl = ltypes[load_type]

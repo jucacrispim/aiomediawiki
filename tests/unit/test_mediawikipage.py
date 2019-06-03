@@ -48,9 +48,15 @@ async def test_basic_load_ambiguous(page):
 
 @pytest.mark.asyncio
 async def test_basic_load_ok(page):
-    ret = {'query': {'pages': [{'pageid': 123,
-                                'title': 'My Page',
-                                'fullurl': 'http://bla.nada'}]}}
+    ret = {'query': {'pages': [
+        {'pageid': 123,
+         'title': 'My Page',
+         'fullurl': 'http://bla.nada',
+         'extract': 'some summary',
+         'redirects': [{'title': 'some-redir'}],
+         'categories': [{'title': 'Category:Some Category'}],
+         'extlinks': [{'url': 'some.url'}]}]}}
+
     page.mediawiki.request2api = CoroutineMock(return_value=ret)
 
     await page._basic_load()
@@ -58,6 +64,12 @@ async def test_basic_load_ok(page):
     assert page.pageid
     assert page.url
     assert page.redirected is False
+    assert page.summary
+    assert not page.links
+    assert page.references
+    assert page.categories
+    assert page.redirects
+    assert page.coordinates == ()
 
 
 def test_get_coordinates_no_coords(page):
@@ -78,28 +90,6 @@ def test_get_coordinates(page):
 
 
 @pytest.mark.asyncio
-async def test_full_api_load(page):
-    page_ret = {
-        'extract': 'some summary',
-        'redirects': [{'title': 'some-redir'}],
-        'categories': [{'title': 'Category:Some Category'}],
-        'extlinks': [{'url': 'some.url'}]
-    }
-    ret = {'query': {'pages': [page_ret]}}
-
-    page.mediawiki.request2api = CoroutineMock(return_value=ret)
-
-    await page._full_api_load()
-
-    assert page.summary
-    assert not page.links
-    assert page.references
-    assert page.categories
-    assert page.redirects
-    assert page.coordinates == ()
-
-
-@pytest.mark.asyncio
 async def test_load_basic(page):
     page._basic_load = CoroutineMock()
     page._full_api_load = CoroutineMock()
@@ -108,14 +98,3 @@ async def test_load_basic(page):
 
     assert page._basic_load.called
     assert not page._full_api_load.called
-
-
-@pytest.mark.asyncio
-async def test_load_full(page):
-    page._basic_load = CoroutineMock()
-    page._full_api_load = CoroutineMock()
-
-    await page.load(load_type='full')
-
-    assert page._basic_load.called
-    assert page._full_api_load.called
