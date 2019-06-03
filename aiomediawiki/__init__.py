@@ -24,4 +24,4 @@
 from .wiki import MediaWiki  # noqa for the sake of the api
 
 
-VERSION = '0.1'
+VERSION = '0.1.1'
