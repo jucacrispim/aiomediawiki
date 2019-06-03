@@ -19,35 +19,35 @@
 from asynctest import CoroutineMock
 import pytest
 
-from aiomediawiki import wiki
+from aiomediawiki import wiki, page
 
 
 @pytest.fixture
-def page():
+def page_fix():
     mediawiki = wiki.MediaWiki()
-    return wiki.MediaWikiPage(mediawiki, 'São Paulo Futebol Clube')
+    return page.MediaWikiPage(mediawiki, 'São Paulo Futebol Clube')
 
 
 @pytest.mark.asyncio
-async def test_basic_load_missing(page):
+async def test_basic_load_missing(page_fix):
     ret = {'query': {'pages': [{'missing': True}]}}
-    page.mediawiki.request2api = CoroutineMock(return_value=ret)
+    page_fix.mediawiki.request2api = CoroutineMock(return_value=ret)
 
-    with pytest.raises(wiki.MissingPage):
-        await page._basic_load()
+    with pytest.raises(page.MissingPage):
+        await page_fix._basic_load()
 
 
 @pytest.mark.asyncio
-async def test_basic_load_ambiguous(page):
+async def test_basic_load_ambiguous(page_fix):
     ret = {'query': {'pages': [{'pageprops': {'disambiguation': ""}}]}}
-    page.mediawiki.request2api = CoroutineMock(return_value=ret)
+    page_fix.mediawiki.request2api = CoroutineMock(return_value=ret)
 
-    with pytest.raises(wiki.AmbiguousPage):
-        await page._basic_load()
+    with pytest.raises(page.AmbiguousPage):
+        await page_fix._basic_load()
 
 
 @pytest.mark.asyncio
-async def test_basic_load_ok(page):
+async def test_basic_load_ok(page_fix):
     ret = {'query': {'pages': [
         {'pageid': 123,
          'title': 'My Page',
@@ -57,44 +57,44 @@ async def test_basic_load_ok(page):
          'categories': [{'title': 'Category:Some Category'}],
          'extlinks': [{'url': 'some.url'}]}]}}
 
-    page.mediawiki.request2api = CoroutineMock(return_value=ret)
+    page_fix.mediawiki.request2api = CoroutineMock(return_value=ret)
 
-    await page._basic_load()
+    await page_fix._basic_load()
 
-    assert page.pageid
-    assert page.url
-    assert page.redirected is False
-    assert page.summary
-    assert not page.links
-    assert page.references
-    assert page.categories
-    assert page.redirects
-    assert page.coordinates == ()
+    assert page_fix.pageid
+    assert page_fix.url
+    assert page_fix.redirected is False
+    assert page_fix.summary
+    assert not page_fix.links
+    assert page_fix.references
+    assert page_fix.categories
+    assert page_fix.redirects
+    assert page_fix.coordinates == ()
 
 
-def test_get_coordinates_no_coords(page):
+def test_get_coordinates_no_coords(page_fix):
     ret = {}
 
-    r = page._get_coordinates(ret)
+    r = page_fix._get_coordinates(ret)
 
     assert not r
 
 
-def test_get_coordinates(page):
+def test_get_coordinates(page_fix):
     ret = {'coordinates': [{'lat': 12.232,
                             'lon': 23.234}]}
 
-    r = page._get_coordinates(ret)
+    r = page_fix._get_coordinates(ret)
 
     assert r
 
 
 @pytest.mark.asyncio
-async def test_load_basic(page):
-    page._basic_load = CoroutineMock()
-    page._full_api_load = CoroutineMock()
+async def test_load_basic(page_fix):
+    page_fix._basic_load = CoroutineMock()
+    page_fix._full_api_load = CoroutineMock()
 
-    await page.load(load_type='basic')
+    await page_fix.load(load_type='basic')
 
-    assert page._basic_load.called
-    assert not page._full_api_load.called
+    assert page_fix._basic_load.called
+    assert not page_fix._full_api_load.called
