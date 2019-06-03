@@ -22,4 +22,12 @@ class MissingPage(Exception):
 
 
 class AmbiguousPage(Exception):
-    pass
+
+    def __init__(self, page_title, candidates):
+        self.page_title = page_title
+        self.candidates = candidates
+
+        cands = '\n'.join(self.candidates)
+        msg = 'Page {} is ambiguous. The possible candidates are:\n{}'.format(
+            self.page_title, cands)
+        super().__init__(msg)

@@ -19,6 +19,7 @@
 import pytest
 
 from aiomediawiki import MediaWiki
+from aiomediawiki.exceptions import AmbiguousPage
 
 
 @pytest.fixture
@@ -39,3 +40,16 @@ async def test_get_page(mediawiki):
     page = await mediawiki.get_page('São Paulo Futebol Clube')
 
     assert page.summary
+
+
+@pytest.mark.asyncio
+async def test_get_ambiguous_page(mediawiki):
+
+    try:
+        await mediawiki.get_page('Independente')
+        err = None
+    except AmbiguousPage as e:
+        err = e
+
+    assert err
+    assert len(err.candidates) > 0

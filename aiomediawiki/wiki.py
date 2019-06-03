@@ -62,11 +62,11 @@ class MediaWiki:
         :param lang: The language for the results. Defaults to `en`.
         """
         self._url = url
-        self._lang = lang
+        self.lang = lang
 
     @property
     def api_url(self):
-        return self._url.format(lang=self._lang)
+        return self._url.format(lang=self.lang)
 
     async def request2api(self, params):
         """Performs a GET request to the mediawiki api. Returns a

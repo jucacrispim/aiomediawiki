@@ -16,10 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with aiomediawiki. If not, see <http://www.gnu.org/licenses/>.
 
+import os
+
 from asynctest import CoroutineMock
 import pytest
 
 from aiomediawiki import wiki, page
+
+from . import DATA_DIR
 
 
 @pytest.fixture
@@ -41,6 +45,8 @@ async def test_basic_load_missing(page_fix):
 async def test_basic_load_ambiguous(page_fix):
     ret = {'query': {'pages': [{'pageprops': {'disambiguation': ""}}]}}
     page_fix.mediawiki.request2api = CoroutineMock(return_value=ret)
+    page_fix._raise_ambiguous_page = CoroutineMock(
+        side_effect=page.AmbiguousPage('title', []))
 
     with pytest.raises(page.AmbiguousPage):
         await page_fix._basic_load()
@@ -98,3 +104,18 @@ async def test_load_basic(page_fix):
 
     assert page_fix._basic_load.called
     assert not page_fix._full_api_load.called
+
+
+@pytest.mark.asyncio
+async def test_raise_ambiguous_page(page_fix):
+    fname = os.path.join(DATA_DIR, 'revcontent.txt')
+    with open(fname) as fd:
+        content = fd.read()
+
+    page_dict = {'revisions': [{'slots': {'main': {'content': content}}}]}
+    r = {'query': {'pages': [page_dict]}}
+
+    page_fix.mediawiki.request2api = CoroutineMock(return_value=r)
+
+    with pytest.raises(page.AmbiguousPage):
+        await page_fix._raise_ambiguous_page()

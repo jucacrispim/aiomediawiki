@@ -29,7 +29,7 @@ DESCRIPTION = """
 A simple asyncio mediawiki client.
 """.strip()
 
-LONG_DESCRIPTION = get_long_description_from_file()
+LONG_DESCRIPTION = DESCRIPTION # get_long_description_from_file()
 
 setup(name='aiomediawiki',
       version=VERSION,

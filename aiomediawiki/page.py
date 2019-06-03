@@ -17,7 +17,9 @@
 # along with aiomediawiki. If not, see <http://www.gnu.org/licenses/>.
 
 from decimal import Decimal
+import re
 
+from bs4 import BeautifulSoup
 from .exceptions import MissingPage, AmbiguousPage
 
 
@@ -96,6 +98,26 @@ class MediaWikiPage:
         lat, lon = coord[0]['lat'], coord[0]['lon']
         return (Decimal(lat), Decimal(lon))
 
+    async def _raise_ambiguous_page(self):
+        """When a page is ambiguous we fetch the revision content for
+        of the disambiguation page,  parse the content's text
+        and show the possible terms in the exception.
+        """
+
+        params = {
+            "prop": "revisions",
+            "rvprop": "content",
+            "rvslots": "*",
+            "rvlimit": 1,
+            'titles': self.title,
+        }
+        r = await self.mediawiki.request2api(params)
+        page = r["query"]["pages"][0]
+        content = page["revisions"][0]['slots']['main']['content']
+        pat = re.compile(r'\[\[(.*)\]\]')
+        candidates = [c.split('|')[0] for c in pat.findall(content)]
+        raise AmbiguousPage(self.title, candidates)
+
     async def _basic_load(self):
         """First load to a page. Checks if it exists and
         if it is not a disambiguaiton page. No html parsing
@@ -135,8 +157,8 @@ class MediaWikiPage:
             raise MissingPage('The page {} does not exist'.format(self.title))
 
         if page.get('pageprops'):
-            # an ambiguous one...
-            raise AmbiguousPage
+            # we raise shit inside the method. read the meth doc
+            await self._raise_ambiguous_page()
 
         self._redirected = bool(r['query'].get('redirects'))
         self._pageid = page['pageid']
@@ -152,6 +174,11 @@ class MediaWikiPage:
         self._coordinates = self._get_coordinates(page)
 
     async def load(self, load_type=DEFAULT_LOAD_TYPE):
+        """Fetches the page content from a mediawiki installation.
+
+        :param loa_type: Indicates if we should load everything,
+          including image links and html or only the basic api info.
+        """
         ltypes = {
             'basic': (self._basic_load,),
         }
