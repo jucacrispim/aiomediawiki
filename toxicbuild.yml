@@ -29,78 +29,11 @@ MAIN_STEPS:  &MAIN_STEPS
   - <<: *FUNCTIONAL_TESTS
 
 
-PY35_VENV: &PY35_VENV
-  name: python-venv
-  pyversion: python3.5
-  requirements_file: requirements.txt
+language: python
+versions:
+  - '3.5'
+  - '3.6'
+  - '3.7'
 
-PY36_VENV:  &PY36_VENV
-  name: python-venv
-  pyversion: python3.6
-  requirements_file: requirements.txt
-
-PY37_VENV:  &PY37_VENV
-  name: python-venv
-  pyversion: python3.7
-  requirements_file: requirements.txt
-
-
-
-
-# builders
-
-PY35_BUILDER:  &PY35_BUILDER
-  name: python3.5
-
-  branches:
-    - master
-
-  plugins:
-    - <<: *PY35_VENV
-
-  steps:
-    *MAIN_STEPS
-
-  platform:
-    python3.5
-
-
-PY36_BUILDER:  &PY36_BUILDER
-  name: python3.6
-
-  branches:
-    - master
-
-  plugins:
-    - <<: *PY36_VENV
-
-  steps:
-    *MAIN_STEPS
-
-  platform:
-    python3.6
-
-
-PY37_BUILDER:  &PY37_BUILDER
-  name: python3.7
-
-  branches:
-    - master
-    - 'feature-*'
-    - 'bug-*'
-
-  plugins:
-    - <<: *PY37_VENV
-
-  steps:
-    *MAIN_STEPS
-
-  platform:
-    python3.7
-
-
-
-builders:
-  - <<: *PY35_BUILDER
-  - <<: *PY36_BUILDER
-  - <<: *PY37_BUILDER
+steps:
+  *MAIN_STEPS
