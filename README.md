@@ -49,6 +49,12 @@ print(page.summary)
 
 ```
 
+You can also fetch a page using its id
+
+```python
+page = await wiki.get_page(pageid=15954)
+```
+
 Notes
 =====
 

@@ -43,6 +43,15 @@ async def test_get_page(mediawiki):
 
 
 @pytest.mark.asyncio
+async def test_get_page_with_pageid(mediawiki):
+    r = await mediawiki.search('São Paulo FC')
+    pageid = r[0].pageid
+    page = await mediawiki.get_page(pageid=pageid)
+
+    assert page.summary
+
+
+@pytest.mark.asyncio
 async def test_get_ambiguous_page(mediawiki):
 
     try:

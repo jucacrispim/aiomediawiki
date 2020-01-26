@@ -67,6 +67,39 @@ async def test_basic_load_ok(page_fix):
 
     await page_fix._basic_load()
 
+    called_params = page_fix.mediawiki.request2api.call_args[0][0]
+    assert 'titles' in called_params
+
+    assert page_fix.pageid
+    assert page_fix.url
+    assert page_fix.redirected is False
+    assert page_fix.summary
+    assert not page_fix.links
+    assert page_fix.references
+    assert page_fix.categories
+    assert page_fix.redirects
+    assert page_fix.coordinates == ()
+
+
+@pytest.mark.asyncio
+async def test_basic_load_ok_pageid(page_fix):
+    page_fix._pageid = 123
+    ret = {'query': {'pages': [
+        {'pageid': 123,
+         'title': 'My Page',
+         'fullurl': 'http://bla.nada',
+         'extract': 'some summary',
+         'redirects': [{'title': 'some-redir'}],
+         'categories': [{'title': 'Category:Some Category'}],
+         'extlinks': [{'url': 'some.url'}]}]}}
+
+    page_fix.mediawiki.request2api = CoroutineMock(return_value=ret)
+
+    await page_fix._basic_load()
+
+    called_params = page_fix.mediawiki.request2api.call_args[0][0]
+    assert 'pageids' in called_params
+
     assert page_fix.pageid
     assert page_fix.url
     assert page_fix.redirected is False
@@ -119,3 +152,8 @@ async def test_raise_ambiguous_page(page_fix):
 
     with pytest.raises(page.AmbiguousPage):
         await page_fix._raise_ambiguous_page()
+
+
+def test_instance_no_title_no_id():
+    with pytest.raises(TypeError):
+        wiki.MediaWikiPage(wiki.MediaWiki())

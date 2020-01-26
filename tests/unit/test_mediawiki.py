@@ -45,7 +45,8 @@ async def test_request2api(mocker, mediawiki):
 
 @pytest.mark.asyncio
 async def test_search(mocker, mediawiki):
-    ret = {'query': {'search': [{'title': 'one'}, {'title': 'two'}]}}
+    ret = {'query': {'search': [{'title': 'one', 'pageid': 123},
+                                {'title': 'two', 'pageid': 342}]}}
     mocker.patch.object(wiki.MediaWiki, 'request2api',
                         CoroutineMock(return_value=ret))
 

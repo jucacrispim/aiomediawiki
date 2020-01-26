@@ -30,16 +30,20 @@ class MediaWikiPage:
     DEFAULT_LOAD_TYPE = 'basic'
     """Indicates if we should load the full information by default."""
 
-    def __init__(self, mediawiki, title):
+    def __init__(self, mediawiki, title=None, pageid=None):
         """Constructor for MediaWikiPage.
 
         :param mediawiki: An instance of :class:`~aiomediawiki.wiki.MediaWiki`.
         :param title: The page title.
+        :param pageid: The id of the page.
         """
+
+        if not any([title, pageid]):
+            raise TypeError('You must pass either title or pageid')
 
         self.mediawiki = mediawiki
         self._title = title
-        self._pageid = None
+        self._pageid = pageid
         self._summary = None
         self._redirected = False
         self._url = None
@@ -133,7 +137,6 @@ class MediaWikiPage:
         p = 'extracts|redirects|links|coordinates|categories|extlinks'
         p += '|info|pageprops'
         params = {
-            'titles': self.title,
             'prop': p,
             # summary
             'explaintext': '',
@@ -155,6 +158,11 @@ class MediaWikiPage:
             'ppprop': 'disambiguation',
             'redirects': '',
         }
+
+        if self.pageid:
+            params['pageids'] = self.pageid
+        else:
+            params['titles'] = self.title
 
         r = await self.mediawiki.request2api(params)
         page = r['query']['pages'][0]

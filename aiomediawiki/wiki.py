@@ -120,13 +120,16 @@ class MediaWiki:
         r = await self.request2api(params)
         results = r['query']['search']
         return SearchResults(
-            [self.PAGE_CLS(self, r['title']) for r in results])
+            [self.PAGE_CLS(self, r['title'], r['pageid']) for r in results])
 
-    async def get_page(self, title):
+    async def get_page(self, title=None, pageid=None):
         """Returns an instance of :class:`~aiomediawiki.wiki.MediaWikiPage`.
+
+        :param title: The page title
+        :param pageid: The pageid
         """
 
-        page = self.PAGE_CLS(self, title)
+        page = self.PAGE_CLS(self, title, pageid)
         if self.LOAD_PAGE:
             await page.load()
 
