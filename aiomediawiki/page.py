@@ -24,7 +24,7 @@ from .exceptions import MissingPage, AmbiguousPage
 
 class MediaWikiPage:
     """A class representing a wiki page. Using this class
-    you can load a page's contens.
+    you can load a page's contents.
     """
 
     DEFAULT_LOAD_TYPE = 'basic'
@@ -175,7 +175,7 @@ class MediaWikiPage:
     async def load(self, load_type=DEFAULT_LOAD_TYPE):
         """Fetches the page content from a mediawiki installation.
 
-        :param loa_type: Indicates if we should load everything,
+        :param load_type: Indicates if we should load everything,
           including image links and html or only the basic api info.
         """
         ltypes = {
