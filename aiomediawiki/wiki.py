@@ -47,9 +47,11 @@ Usage
 """
 
 import asyncio
+import json
 
 import yaar
 
+from .cache import ResultsCache
 from .page import MediaWikiPage
 
 
@@ -90,6 +92,7 @@ class MediaWiki:
         """
         self._url = url
         self.lang = lang
+        self.cache = ResultsCache()
 
     @property
     def api_url(self):
@@ -105,7 +108,14 @@ class MediaWiki:
         params['format'] = 'json'
         params['formatversion'] = '2'
         params['action'] = 'query'
+
+        cached = self.cache.get(str(params))
+        if cached:
+            r = json.loads(cached)
+            return r
+
         response = await yaar.get(self.api_url, params=params)
+        self.cache.add(str(params), response.text)
         return response.json()
 
     async def search(self, query):

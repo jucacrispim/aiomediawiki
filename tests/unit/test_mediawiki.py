@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with aiomediawiki. If not, see <http://www.gnu.org/licenses/>.
 
-from asynctest import CoroutineMock
+from asynctest import CoroutineMock, Mock
 import pytest
 
 from aiomediawiki import wiki
@@ -39,8 +39,25 @@ async def test_request2api(mocker, mediawiki):
     params = {'some': 'thing'}
     await mediawiki.request2api(params)
 
+    assert wiki.yaar.get.called
     params = wiki.yaar.get.call_args[1]['params']
     assert params['format'] == 'json'
+
+
+@pytest.mark.asyncio
+async def test_request2api_cached(mocker, mediawiki):
+    mocker.patch.object(wiki.yaar, 'get', CoroutineMock(
+        return_value=Mock(text='{"a": "json"}')
+    ))
+    params = {'some': 'thing'}
+    await mediawiki.request2api(params)
+
+    # a new mock so the call count is zeroed
+    mocker.patch.object(wiki.yaar, 'get', CoroutineMock())
+    params = {'some': 'thing'}
+    await mediawiki.request2api(params)
+
+    assert not wiki.yaar.get.called
 
 
 @pytest.mark.asyncio
