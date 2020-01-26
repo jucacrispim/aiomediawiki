@@ -29,7 +29,6 @@ def mediawiki():
 
 @pytest.mark.asyncio
 async def test_search(mediawiki):
-
     r = await mediawiki.search('São Paulo FC')
 
     titles = [p.title for p in r]
