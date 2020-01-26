@@ -80,6 +80,10 @@ class MediaWiki:
     PAGE_CLS = MediaWikiPage
     """The page class"""
 
+    SEARCH_RESULTS_CLS = SearchResults
+    """The class that handle search results.
+    """
+
     LOAD_PAGE = True
     """Should we load the page when getting it?"""
 
@@ -129,7 +133,7 @@ class MediaWiki:
 
         r = await self.request2api(params)
         results = r['query']['search']
-        return SearchResults(
+        return self.SEARCH_RESULTS_CLS(
             [self.PAGE_CLS(self, r['title'], r['pageid']) for r in results])
 
     async def get_page(self, title=None, pageid=None):
@@ -141,6 +145,9 @@ class MediaWiki:
 
         page = self.PAGE_CLS(self, title, pageid)
         if self.LOAD_PAGE:
-            await page.load()
+            await self._load_page(page)
 
         return page
+
+    async def _load_page(self, page):
+        return await page.load()

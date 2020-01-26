@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""This module implements a blocking interface to mediawiki mainly
+for use in the python shell.
+"""
 # Copyright 2020 Juca Crispim <juca@poraodojuca.net>
 
 # This file is part of aiomediawiki.
@@ -18,6 +21,7 @@
 
 import asyncio
 
+from .page import MediaWikiPage
 from .wiki import MediaWiki
 
 
@@ -31,6 +35,8 @@ def blocking(call):
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(call(*args, **kwargs))
 
+    block_call.__original__ = call
+
     return block_call
 
 
@@ -38,17 +44,45 @@ class BlockingMeta(type):
     """Metaclass to turn coroutines into blocking methods.
     """
 
-    def __new__(cls, name, base, attrs):
-        new_cls = super().__new__(cls, name, base, attrs)
+    def __new__(cls, name, bases, attrs):
+        new_cls = super().__new__(cls, name, bases, attrs)
 
-        no_synchronize = ['request2api']
+        no_synchronize = attrs.get('no_synchronize', [])
         for attr_name in dir(new_cls):
             attr = getattr(new_cls, attr_name)
-            if attr_name not in no_synchronize and asyncio.iscoroutinefunction(
+            should_block = (not attr_name.startswith('_') and
+                            attr_name not in no_synchronize)
+            if should_block and asyncio.iscoroutinefunction(
                     attr):
                 setattr(new_cls, attr_name, blocking(attr))
         return new_cls
 
 
+class BlockingSearchResults(list):
+    """Blocking container for mediawiki results.
+    """
+
+    def load_all(self):
+        """Synchronous version of load_all. Note that the pages
+        are loaded concurrently.
+        """
+        futs = [p.load.__original__(p) for p in self]
+        blocking(asyncio.gather)(*futs)
+
+
+class BlockingMediaWikiPage(MediaWikiPage, metaclass=BlockingMeta):
+    """A MediaWikiPage that blocks when loading"""
+
+
 class BlockingMediaWiki(MediaWiki, metaclass=BlockingMeta):
-    pass
+    """A MediaWiki that has blocking io operations."""
+
+    PAGE_CLS = BlockingMediaWikiPage
+    SEARCH_RESULTS_CLS = BlockingSearchResults
+
+    no_synchronize = [
+        'request2api'
+    ]
+
+    async def _load_page(self, page):
+        return await page.load.__original__(page)
