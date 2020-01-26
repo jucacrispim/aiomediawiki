@@ -49,10 +49,10 @@ class MediaWikiPage:
         self._categories = None
         self._coordinates = None
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return 'MediaWikiPage: {}'.format(self.title)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return str(self)
 
     @property
