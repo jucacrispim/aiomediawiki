@@ -49,6 +49,12 @@ class MediaWikiPage:
         self._categories = None
         self._coordinates = None
 
+    def __str__(self):
+        return 'MediaWikiPage: {}'.format(self.title)
+
+    def __repr__(self):
+        return str(self)
+
     @property
     def pageid(self):
         return self._pageid
@@ -98,7 +104,7 @@ class MediaWikiPage:
         return (Decimal(lat), Decimal(lon))
 
     async def _raise_ambiguous_page(self):
-        """When a page is ambiguous we fetch the revision content for
+        """When a page is ambiguous we fetch the revision content
         of the disambiguation page,  parse the content's text
         and show the possible terms in the exception.
         """

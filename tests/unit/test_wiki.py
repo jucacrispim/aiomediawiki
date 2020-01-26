@@ -20,6 +20,7 @@ from asynctest import CoroutineMock
 import pytest
 
 from aiomediawiki import wiki
+from aiomediawiki.page import MediaWikiPage
 
 
 @pytest.fixture
@@ -52,3 +53,4 @@ async def test_search(mocker, mediawiki):
     r = await mediawiki.search('some query')
 
     assert len(r) == 2
+    assert isinstance(r[0], MediaWikiPage)

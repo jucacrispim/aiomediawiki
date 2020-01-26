@@ -92,7 +92,7 @@ class MediaWiki:
 
         r = await self.request2api(params)
         results = r['query']['search']
-        return [r['title'] for r in results]
+        return [self.PAGE_CLS(self, r['title']) for r in results]
 
     async def get_page(self, title):
         """Returns an instance of :class:`~aiomediawiki.wiki.MediaWikiPage`.

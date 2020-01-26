@@ -22,11 +22,11 @@ wiki = MediaWiki()
 
 # Search for pages
 results = await wiki.search('python')
-for page_title in results:
-    print(page_title)
+for page in results:
+    print(page.title)
 
 # Get a specific page
-page = await wiki.get_page('Monty Python)
+page = await wiki.get_page('Monty Python')
 print(page.summary)
 
 ```

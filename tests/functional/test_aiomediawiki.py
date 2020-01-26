@@ -32,7 +32,8 @@ async def test_search(mediawiki):
 
     r = await mediawiki.search('São Paulo FC')
 
-    assert 'São Paulo Futebol Clube' in r
+    titles = [p.title for p in r]
+    assert 'São Paulo Futebol Clube' in titles
 
 
 @pytest.mark.asyncio
