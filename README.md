@@ -12,6 +12,9 @@ $ pip install aiomediawiki
 Usage
 =====
 
+Search
+------
+
 ```python
 from aiomediawiki import MediaWiki
 
@@ -22,9 +25,24 @@ wiki = MediaWiki()
 
 # Search for pages
 results = await wiki.search('python')
+async for page in results:
+    print(page.title)
+```
+
+Using ``async for`` will load the pages as you iterate over it. To load
+all pages at once use:
+
+```python
+results = await wiki.search('python')
+await results.load_all()
 for page in results:
     print(page.title)
+```
 
+Fetch
+-----
+
+```python
 # Get a specific page
 page = await wiki.get_page('Monty Python')
 print(page.summary)

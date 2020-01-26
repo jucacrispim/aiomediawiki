@@ -52,6 +52,7 @@ async def test_search(mocker, mediawiki):
     r = await mediawiki.search('some query')
 
     assert len(r) == 2
+    assert isinstance(r, wiki.SearchResults)
 
 
 @pytest.mark.asyncio

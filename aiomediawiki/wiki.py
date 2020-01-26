@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019 Juca Crispim <juca@poraodojuca.net>
+# Copyright 2020 Juca Crispim <juca@poraodojuca.net>
 
 # This file is part of aiomediawiki.
 
@@ -25,8 +25,18 @@ Usage
 
     wiki = MediaWiki()
     # search for pages in wikipedia
-    for title await wiki.search('some query'):
-        print(title)
+    for page in await wiki.search('some query'):
+        print(page.title)
+        await page.load()
+
+    # you can use async for to load the page while iterating
+    async for page in await wiki.search('some query'):
+        print(page.summary)
+
+
+    # to load all pages in the result at once
+    results = await wiki.search('some query')
+    await results.load_all()
 
     # get a specific page
     page = await wiki.get_page(title)
@@ -36,12 +46,29 @@ Usage
 
 """
 
+import asyncio
+
 import yaar
 
 from .page import MediaWikiPage
 
 
 MEDIAWIKI_API_URL = 'https://{lang}.wikipedia.org/w/api.php'
+
+
+class SearchResults(list):
+    """A list for the search results. It knows how to load
+    the reults contents.
+    """
+
+    async def __aiter__(self):
+        for p in self:
+            await p.load()
+            yield p
+
+    async def load_all(self):
+        futs = [p.load() for p in self]
+        await asyncio.gather(*futs)
 
 
 class MediaWiki:
@@ -92,7 +119,8 @@ class MediaWiki:
 
         r = await self.request2api(params)
         results = r['query']['search']
-        return [self.PAGE_CLS(self, r['title']) for r in results]
+        return SearchResults(
+            [self.PAGE_CLS(self, r['title']) for r in results])
 
     async def get_page(self, title):
         """Returns an instance of :class:`~aiomediawiki.wiki.MediaWikiPage`.
