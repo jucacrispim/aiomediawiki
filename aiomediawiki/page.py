@@ -141,8 +141,11 @@ class MediaWikiPage:
 
         loader = self._get_loader()(self.mediawiki, **kw)
         gen = await loader.basic_load()
+        page = None
         async for page in gen:  # pragma: no branch
             break
+
+        assert page
 
         self._merge(page)
 
@@ -252,8 +255,8 @@ class PageLoader:
             except (MissingPage, AmbiguousPage) as e:
                 if self.raise_on_error:
                     raise
-                logger.warning('Error loading page {}. {}'.format(
-                    presult['title'], type(e)))
+                logger.warning('Error loading page %s. %s',
+                               presult['title'], type(e))
             else:
                 yield page
 
