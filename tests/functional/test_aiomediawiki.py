@@ -29,10 +29,11 @@ def mediawiki():
 
 @pytest.mark.asyncio
 async def test_search(mediawiki):
-    r = await mediawiki.search('São Paulo FC')
+    r = await mediawiki.search('São Paulo FC', limit=20)
 
     titles = [p.title for p in r]
     assert 'São Paulo Futebol Clube' in titles
+    assert len(r) == 20
 
 
 @pytest.mark.asyncio

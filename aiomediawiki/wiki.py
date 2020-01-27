@@ -130,13 +130,15 @@ class MediaWiki:
         self.cache.add(str(params), response.text)
         return response.json()
 
-    async def search(self, query):
+    async def search(self, query, limit=10, offset=0):
         """Performs a seach using the api.
 
         :param query: A string with the query
         """
 
         params = {'srsearch': query,
+                  'srlimit': limit,
+                  'sroffset': offset,
                   'list': 'search'}
 
         r = await self.request2api(params)

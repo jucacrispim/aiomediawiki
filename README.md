@@ -39,6 +39,12 @@ for page in results:
     print(page.title)
 ```
 
+You can paginate the results using the ``limit`` and ``offset`` arguments:
+
+```python
+results = await wiki.search('python', limit=20, offset=30)
+```
+
 Fetch
 -----
 
