@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2019 Juca Crispim <juca@poraodojuca.net>
+# Copyright 2019-2020 Juca Crispim <juca@poraodojuca.net>
 
 # This file is part of aiomediawiki.
 
@@ -17,9 +17,13 @@
 # along with aiomediawiki. If not, see <http://www.gnu.org/licenses/>.
 
 from decimal import Decimal
+from logging import getLogger
 import re
 
-from .exceptions import MissingPage, AmbiguousPage
+from .exceptions import MissingPage, AmbiguousPage, InvalidPage
+
+
+logger = getLogger(__name__)
 
 
 class MediaWikiPage:
@@ -58,6 +62,29 @@ class MediaWikiPage:
 
     def __repr__(self):  # pragma: no cover
         return str(self)
+
+    @classmethod
+    def from_api_result(cls, mediawiki, result):
+        """Creates an MediaWikiPage instance from a json result
+        from the mediawiki api.
+
+        :param mediawiki: An instance of :class:`~aiomediawiki.wiki.MediaWiki`.
+        :param result: A result result from the mediawiki api.
+        """
+        inst = cls(mediawiki, result['title'], result['pageid'])
+        inst._redirected = bool(result.get('redirects'))
+        inst._pageid = result['pageid']
+        inst._title = result['title']
+        inst._url = result['fullurl']
+        inst._summary = result['extract']
+        inst._links = [l['title'] for l in result.get('links', [])]
+        inst._redirects = [red['title'] for red in result.get('redirects', [])]
+        inst._references = [ref['url'] for ref in result.get('extlinks', [])]
+        inst._categories = [cat['title'].split(':', 1)[1]
+                            for cat in result.get('categories', [])]
+        inst._coordinates = inst._get_coordinates(result)
+
+        return inst
 
     @property
     def pageid(self):
@@ -99,6 +126,45 @@ class MediaWikiPage:
     def coordinates(self):
         return self._coordinates
 
+    async def load(self, load_type=DEFAULT_LOAD_TYPE):
+        """Fetches the page content from a mediawiki installation.
+
+        :param load_type: Indicates if we should load everything,
+          including image links and html or only the basic api info.
+        """
+        kw = {}
+        if self.title:
+            kw['titles'] = [self.title]
+
+        if self.pageid:
+            kw['pageids'] = [self.pageid]
+
+        loader = self._get_loader()(self.mediawiki, **kw)
+        gen = await loader.basic_load()
+        async for page in gen:  # pragma: no branch
+            break
+
+        self._merge(page)
+
+    def _merge(self, page):
+        """Merges a page into this instance. If the pages have
+        different pageid will raise InvalidPage
+        """
+
+        if self.pageid and self.pageid != page.pageid:
+            raise InvalidPage(page)
+
+        self._redirected = page.redirected
+        self._pageid = page.pageid
+        self._url = page.url
+        self._title = page.title
+        self._summary = page.summary
+        self._links = page.links
+        self._redirects = page.redirects
+        self._references = page.references
+        self._categories = page.categories
+        self._coordinates = page.coordinates
+
     def _get_coordinates(self, page):
         coord = page.get('coordinates')
         if not coord:
@@ -107,27 +173,36 @@ class MediaWikiPage:
         lat, lon = coord[0]['lat'], coord[0]['lon']
         return (Decimal(lat), Decimal(lon))
 
-    async def _raise_ambiguous_page(self):
-        """When a page is ambiguous we fetch the revision content
-        of the disambiguation page,  parse the content's text
-        and show the possible terms in the exception.
+    def _get_loader(self):
+        return PageLoader
+
+
+class PageLoader:
+    """A PageLoader knows how to fetch content from mediawiki and
+    create page instances based on it.
+    """
+
+    PAGE_CLS = MediaWikiPage
+
+    def __init__(self, mediawiki, titles=None, pageids=None,
+                 raise_on_error=True):
+        """:param mediawiki: An :class:`~aiomediawiki.wiki.MediaWiki` instance.
+        :param titles: A list of page titles.
+        :param pageids: A list of page ids. This argument has precedence
+          over titles.
+        :param raise_on_error: If False don't raises MissingPage nor
+          AmbiguousPage. Log the error instead.
         """
 
-        params = {
-            "prop": "revisions",
-            "rvprop": "content",
-            "rvslots": "*",
-            "rvlimit": 1,
-            'titles': self.title,
-        }
-        r = await self.mediawiki.request2api(params)
-        page = r["query"]["pages"][0]
-        content = page["revisions"][0]['slots']['main']['content']
-        pat = re.compile(r'\[\[(.*)\]\]')
-        candidates = [c.split('|')[0] for c in pat.findall(content)]
-        raise AmbiguousPage(self.title, candidates)
+        if not any([titles, pageids]):
+            raise TypeError('You must pass either titles or pageids.')
 
-    async def _basic_load(self):
+        self.mediawiki = mediawiki
+        self.titles = titles
+        self.pageids = pageids
+        self.raise_on_error = raise_on_error
+
+    async def basic_load(self):
         """First load to a page. Checks if it exists and
         if it is not a disambiguaiton page. No html parsing
         is done here unless the page is an ambiguous one. In this case
@@ -159,43 +234,58 @@ class MediaWikiPage:
             'redirects': '',
         }
 
-        if self.pageid:
-            params['pageids'] = self.pageid
+        def fmt_list(lst):
+            return '|'.join([str(i) for i in lst])
+
+        if self.pageids:
+            params['pageids'] = fmt_list(self.pageids)
         else:
-            params['titles'] = self.title
+            params['titles'] = fmt_list(self.titles)
 
         r = await self.mediawiki.request2api(params)
-        page = r['query']['pages'][0]
-        if page.get('missing'):
-            raise MissingPage('The page {} does not exist'.format(self.title))
+        return self._load_results(r)
 
-        if page.get('pageprops'):
+    async def _load_results(self, r):
+        for presult in r['query']['pages']:
+            try:
+                page = await self._load_page(presult)
+            except (MissingPage, AmbiguousPage) as e:
+                if self.raise_on_error:
+                    raise
+                logger.warning('Error loading page {}. {}'.format(
+                    presult['title'], type(e)))
+            else:
+                yield page
+
+    async def _load_page(self, presult):
+
+        if presult.get('missing'):
+            raise MissingPage(
+                'The page {} does not exist'.format(presult['title']))
+
+        if presult.get('pageprops'):
             # we raise shit inside the method. read the meth doc
-            await self._raise_ambiguous_page()
+            await self._raise_ambiguous_page(presult['title'])
 
-        self._redirected = bool(r['query'].get('redirects'))
-        self._pageid = page['pageid']
-        # change here in case of redirect
-        self._title = page['title']
-        self._url = page['fullurl']
-        self._summary = page['extract']
-        self._links = [l['title'] for l in page.get('links', [])]
-        self._redirects = [red['title'] for red in page.get('redirects', [])]
-        self._references = [ref['url'] for ref in page.get('extlinks', [])]
-        self._categories = [cat['title'].split(':', 1)[1]
-                            for cat in page.get('categories', [])]
-        self._coordinates = self._get_coordinates(page)
+        page = self.PAGE_CLS.from_api_result(self.mediawiki, presult)
+        return page
 
-    async def load(self, load_type=DEFAULT_LOAD_TYPE):
-        """Fetches the page content from a mediawiki installation.
-
-        :param load_type: Indicates if we should load everything,
-          including image links and html or only the basic api info.
+    async def _raise_ambiguous_page(self, title):
+        """When a page is ambiguous we fetch the revision content
+        of the disambiguation page,  parse the content's text
+        and show the possible terms in the exception.
         """
-        ltypes = {
-            'basic': (self._basic_load,),
-        }
 
-        pl = ltypes[load_type]
-        for fn in pl:
-            await fn()
+        params = {
+            "prop": "revisions",
+            "rvprop": "content",
+            "rvslots": "*",
+            "rvlimit": 1,
+            'titles': title,
+        }
+        r = await self.mediawiki.request2api(params)
+        page = r["query"]["pages"][0]
+        content = page["revisions"][0]['slots']['main']['content']
+        pat = re.compile(r'\[\[(.*)\]\]')
+        candidates = [c.split('|')[0] for c in pat.findall(content)]
+        raise AmbiguousPage(title, candidates)

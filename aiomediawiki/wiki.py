@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2020 Juca Crispim <juca@poraodojuca.net>
+# Copyright 2019-2020 Juca Crispim <juca@poraodojuca.net>
 
 # This file is part of aiomediawiki.
 
@@ -46,13 +46,12 @@ Usage
 
 """
 
-import asyncio
 import json
 
 import yaar
 
 from .cache import ResultsCache
-from .page import MediaWikiPage
+from .page import MediaWikiPage, PageLoader
 
 
 MEDIAWIKI_API_URL = 'https://{lang}.wikipedia.org/w/api.php'
@@ -63,14 +62,23 @@ class SearchResults(list):
     the reults contents.
     """
 
+    LOADER_CLS = PageLoader
+
+    def __init__(self, mediawiki, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.mediawiki = mediawiki
+
     async def __aiter__(self):
         for p in self:
             await p.load()
             yield p
 
     async def load_all(self):
-        futs = [p.load() for p in self]
-        await asyncio.gather(*futs)
+        pageids = [p.pageid for p in self]
+        loader = self.LOADER_CLS(self.mediawiki, pageids=pageids)
+        self.clear()
+        async for page in await loader.basic_load():
+            self.append(page)
 
 
 class MediaWiki:
@@ -134,7 +142,9 @@ class MediaWiki:
         r = await self.request2api(params)
         results = r['query']['search']
         return self.SEARCH_RESULTS_CLS(
-            [self.PAGE_CLS(self, r['title'], r['pageid']) for r in results])
+            self,
+            [self.PAGE_CLS(self, r['title'], r['pageid']) for r in results]
+        )
 
     async def get_page(self, title=None, pageid=None):
         """Returns an instance of :class:`~aiomediawiki.wiki.MediaWikiPage`.

@@ -31,3 +31,7 @@ class AmbiguousPage(Exception):
         msg = 'Page {} is ambiguous. The possible candidates are:\n{}'.format(
             self.page_title, cands)
         super().__init__(msg)
+
+
+class InvalidPage(Exception):
+    pass

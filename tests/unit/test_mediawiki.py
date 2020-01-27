@@ -66,7 +66,6 @@ async def test_search(mocker, mediawiki):
                                 {'title': 'two', 'pageid': 342}]}}
     mocker.patch.object(wiki.MediaWiki, 'request2api',
                         CoroutineMock(return_value=ret))
-
     r = await mediawiki.search('some query')
 
     assert len(r) == 2

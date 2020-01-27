@@ -22,11 +22,11 @@ for use in the python shell.
 import asyncio
 
 from .page import MediaWikiPage
-from .wiki import MediaWiki
+from .wiki import MediaWiki, SearchResults
 
 
 def blocking(call):
-    """Turns a async callable into a blocking one.
+    """Turns an async callable into a blocking one.
 
     :param call: An async callable.
     """
@@ -41,7 +41,9 @@ def blocking(call):
 
 
 class BlockingMeta(type):
-    """Metaclass to turn coroutines into blocking methods.
+    """Metaclass to turn coroutines methods into blocking ones.
+    Methods starting with underscore and named in the ``no_synchronize``
+    class attribute - a list - are not affected.
     """
 
     def __new__(cls, name, bases, attrs):
@@ -58,16 +60,9 @@ class BlockingMeta(type):
         return new_cls
 
 
-class BlockingSearchResults(list):
+class BlockingSearchResults(SearchResults, metaclass=BlockingMeta):
     """Blocking container for mediawiki results.
     """
-
-    def load_all(self):
-        """Synchronous version of load_all. Note that the pages
-        are loaded concurrently.
-        """
-        futs = [p.load.__original__(p) for p in self]
-        blocking(asyncio.gather)(*futs)
 
 
 class BlockingMediaWikiPage(MediaWikiPage, metaclass=BlockingMeta):
