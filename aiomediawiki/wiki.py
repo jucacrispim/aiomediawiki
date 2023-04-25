@@ -77,7 +77,7 @@ class SearchResults(list):
         pageids = [p.pageid for p in self]
         loader = self.LOADER_CLS(self.mediawiki, pageids=pageids)
         self.clear()
-        async for page in await loader.basic_load():
+        async for page in await loader.basic_load():  # pragma no branch
             self.append(page)
 
 
