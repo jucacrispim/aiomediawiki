@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from asynctest import CoroutineMock, Mock, MagicMock
+from unittest.mock import AsyncMock, Mock, MagicMock
+
 import pytest
 
 from aiomediawiki import wiki
@@ -10,15 +11,14 @@ from aiomediawiki import wiki
 async def test_load_all(mocker):
     mocker.patch.object(wiki.SearchResults, 'LOADER_CLS',
                         Mock(wiki.SearchResults.LOADER_CLS))
-    wiki.SearchResults.LOADER_CLS.return_value.basic_load = CoroutineMock(
-        spec=wiki.SearchResults.LOADER_CLS.basic_load,
+    wiki.SearchResults.LOADER_CLS.return_value.basic_load = AsyncMock(
         return_value=MagicMock())
     wiki.SearchResults.LOADER_CLS.return_value.basic_load.return_value.\
         __aiter__.return_value = [Mock()]
 
-    r = [Mock(load=CoroutineMock())]
+    r = [Mock(load=AsyncMock())]
     mediawiki = Mock()
-    mediawiki.request2api = CoroutineMock()
+    mediawiki.request2api = AsyncMock()
     results = wiki.SearchResults(mediawiki, r)
     await results.load_all()
 
@@ -27,7 +27,7 @@ async def test_load_all(mocker):
 
 @pytest.mark.asyncio
 async def test_aiter():
-    r = [Mock(load=CoroutineMock())]
+    r = [Mock(load=AsyncMock())]
     mediawiki = Mock()
     results = wiki.SearchResults(mediawiki, r)
 

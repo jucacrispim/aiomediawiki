@@ -17,8 +17,8 @@
 # along with aiomediawiki. If not, see <http://www.gnu.org/licenses/>.
 
 import os
+from unittest.mock import AsyncMock, Mock
 
-from asynctest import CoroutineMock
 import pytest
 
 from aiomediawiki import page, wiki
@@ -51,7 +51,7 @@ async def test_load_results_missing_page(page_loader):
 async def test_load_results_ambiguous_page(page_loader):
     result = {'query': {'pages': [{'pageprops': {'disambiguation': ""},
                                    'title': 'bla'}]}}
-    page_loader._raise_ambiguous_page = CoroutineMock(
+    page_loader._raise_ambiguous_page = AsyncMock(
         spec=page_loader._raise_ambiguous_page,
         side_effect=page.AmbiguousPage('title', ['cand 1', 'cand 1']))
 
@@ -89,7 +89,7 @@ async def test_raise_ambiguous_page(page_loader):
     page_dict = {'revisions': [{'slots': {'main': {'content': content}}}]}
     r = {'query': {'pages': [page_dict]}}
 
-    page_loader.mediawiki.request2api = CoroutineMock(return_value=r)
+    page_loader.mediawiki.request2api = AsyncMock(return_value=r)
 
     with pytest.raises(page.AmbiguousPage):
         await page_loader._raise_ambiguous_page('page title')
@@ -97,10 +97,10 @@ async def test_raise_ambiguous_page(page_loader):
 
 @pytest.mark.asyncio
 async def test_basic_load_titles(page_loader):
-    page_loader.mediawiki.request2api = CoroutineMock(
+    page_loader.mediawiki.request2api = AsyncMock(
         spec=page_loader.mediawiki.request2api)
 
-    page_loader._load_results = CoroutineMock(spec=page_loader._load_results)
+    page_loader._load_results = AsyncMock(spec=page_loader._load_results)
 
     await page_loader.basic_load()
 
@@ -111,10 +111,10 @@ async def test_basic_load_titles(page_loader):
 
 @pytest.mark.asyncio
 async def test_basic_load_pageids(page_loader):
-    page_loader.mediawiki.request2api = CoroutineMock(
+    page_loader.mediawiki.request2api = AsyncMock(
         spec=page_loader.mediawiki.request2api)
 
-    page_loader._load_results = CoroutineMock(spec=page_loader._load_results)
+    page_loader._load_results = AsyncMock(spec=page_loader._load_results)
 
     page_loader.pageids = [123, 456]
     await page_loader.basic_load()

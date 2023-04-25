@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with aiomediawiki. If not, see <http://www.gnu.org/licenses/>.
 
-from asynctest import CoroutineMock, Mock
+from unittest.mock import Mock, AsyncMock
 import pytest
 
 from aiomediawiki import wiki
@@ -35,7 +35,7 @@ def test_api_url(mediawiki):
 
 @pytest.mark.asyncio
 async def test_request2api(mocker, mediawiki):
-    mocker.patch.object(wiki.yaar, 'get', CoroutineMock())
+    mocker.patch.object(wiki.yaar, 'get', AsyncMock())
     params = {'some': 'thing'}
     await mediawiki.request2api(params)
 
@@ -46,14 +46,14 @@ async def test_request2api(mocker, mediawiki):
 
 @pytest.mark.asyncio
 async def test_request2api_cached(mocker, mediawiki):
-    mocker.patch.object(wiki.yaar, 'get', CoroutineMock(
+    mocker.patch.object(wiki.yaar, 'get', AsyncMock(
         return_value=Mock(text='{"a": "json"}')
     ))
     params = {'some': 'thing'}
     await mediawiki.request2api(params)
 
     # a new mock so the call count is zeroed
-    mocker.patch.object(wiki.yaar, 'get', CoroutineMock())
+    mocker.patch.object(wiki.yaar, 'get', AsyncMock())
     params = {'some': 'thing'}
     await mediawiki.request2api(params)
 
@@ -65,7 +65,7 @@ async def test_search(mocker, mediawiki):
     ret = {'query': {'search': [{'title': 'one', 'pageid': 123},
                                 {'title': 'two', 'pageid': 342}]}}
     mocker.patch.object(wiki.MediaWiki, 'request2api',
-                        CoroutineMock(return_value=ret))
+                        AsyncMock(return_value=ret))
     r = await mediawiki.search('some query')
 
     assert len(r) == 2
@@ -74,7 +74,7 @@ async def test_search(mocker, mediawiki):
 
 @pytest.mark.asyncio
 async def test_get_page_dont_load(mocker, mediawiki):
-    mocker.patch.object(wiki.MediaWikiPage, 'load', CoroutineMock())
+    mocker.patch.object(wiki.MediaWikiPage, 'load', AsyncMock())
     mocker.patch.object(wiki.MediaWiki, 'LOAD_PAGE', False)
 
     p = await mediawiki.get_page('some title')
@@ -84,7 +84,7 @@ async def test_get_page_dont_load(mocker, mediawiki):
 
 @pytest.mark.asyncio
 async def test_get_page(mocker, mediawiki):
-    mocker.patch.object(wiki.MediaWikiPage, 'load', CoroutineMock())
+    mocker.patch.object(wiki.MediaWikiPage, 'load', AsyncMock())
     mocker.patch.object(wiki.MediaWiki, 'LOAD_PAGE', True)
 
     p = await mediawiki.get_page('some title')

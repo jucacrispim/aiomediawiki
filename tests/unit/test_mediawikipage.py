@@ -16,8 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with aiomediawiki. If not, see <http://www.gnu.org/licenses/>.
 
-
-from asynctest import CoroutineMock, Mock, MagicMock
+from unittest.mock import AsyncMock, Mock, MagicMock
 import pytest
 
 from aiomediawiki import wiki, page
@@ -49,9 +48,8 @@ def test_get_coordinates(page_fix):
 @pytest.mark.asyncio
 async def test_load_title(page_fix, mocker):
     mocker.patch.object(page, 'PageLoader', Mock(spec=page.PageLoader))
-    page.PageLoader.return_value.basic_load = CoroutineMock(
-        spec=page.PageLoader.basic_load,
-        return_value=MagicMock())
+    page.PageLoader.return_value.basic_load = AsyncMock(
+            return_value=MagicMock())
     page.PageLoader.return_value.basic_load.return_value.\
         __aiter__.return_value = [Mock()]
     page_fix._merge = Mock(spec=page_fix._merge)
@@ -66,8 +64,7 @@ async def test_load_title(page_fix, mocker):
 @pytest.mark.asyncio
 async def test_load_pageid(page_fix, mocker):
     mocker.patch.object(page, 'PageLoader', Mock(spec=page.PageLoader))
-    page.PageLoader.return_value.basic_load = CoroutineMock(
-        spec=page.PageLoader.basic_load,
+    page.PageLoader.return_value.basic_load = AsyncMock(
         return_value=MagicMock())
     page.PageLoader.return_value.basic_load.return_value.\
         __aiter__.return_value = [Mock()]
