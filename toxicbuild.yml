@@ -28,6 +28,9 @@ MAIN_STEPS:  &MAIN_STEPS
   - <<: *UNITTEST_COVERAGE
   - <<: *FUNCTIONAL_TESTS
 
+system_packages:
+  - build-essential
+
 
 language: python
 versions:
