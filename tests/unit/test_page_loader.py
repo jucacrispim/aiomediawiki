@@ -17,7 +17,7 @@
 # along with aiomediawiki. If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 import pytest
 

@@ -18,7 +18,7 @@ PYLINT:  &PYLINT
 
 PEP8:  &PEP8
   name: Checking code conventions
-  command: flake8 mediawiki tests
+  command: flake8 aiomediawiki tests
   warning_on_fail: true
 
 

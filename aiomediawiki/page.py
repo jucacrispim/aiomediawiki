@@ -77,7 +77,7 @@ class MediaWikiPage:
         inst._title = result['title']
         inst._url = result['fullurl']
         inst._summary = result['extract']
-        inst._links = [l['title'] for l in result.get('links', [])]
+        inst._links = [link['title'] for link in result.get('links', [])]
         inst._redirects = [red['title'] for red in result.get('redirects', [])]
         inst._references = [ref['url'] for ref in result.get('extlinks', [])]
         inst._categories = [cat['title'].split(':', 1)[1]
